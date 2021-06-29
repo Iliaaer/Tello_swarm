@@ -15,24 +15,19 @@ class Tello:
     def __init__(self, ip_addres) -> None:
         self.tello_address = (ip_addres, 8889)
     
-    def start(self):
+    def start(self, delay:int=5):
         self.sock.sendto('command'.encode(encoding="utf-8"), self.tello_address)
-        time.sleep(5)
+        time.sleep(delay)
     
-    def takeoff(self):
+    def takeoff(self, delay:int=10):
         self.sock.sendto('takeoff'.encode(encoding="utf-8"), self.tello_address)
-        time.sleep(10)
+        time.sleep(delay)
     
-    def land(self):
+    def land(self, delay:int=5):
         self.sock.sendto('land'.encode(encoding="utf-8"), self.tello_address)
-        time.sleep(5)
+        time.sleep(delay)
 
-    def get_battery(self):
-        """Gets the battery value
-        Returns:
-            int: The percentage of battery remaining
-        """
+    def get_battery(self, delay:int=2):
         order = "battery?"
         self.sock.sendto(order.encode(encoding="utf-8"), self.tello_address)
-        time.sleep(2)
-        print(self.sock)
+        time.sleep(delay)
