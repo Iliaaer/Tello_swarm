@@ -1,101 +1,76 @@
-import socket
+import os
+import platform
 import threading
-import time
-'''
-host = ''
-port = 9000
-locaddr = (host, port)
+import socket
+import netifaces
+import netaddr
+import socket
+import requests 
+from datetime import datetime
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-tello_address = ('192.168.10.1', 8889)
-sock.bind(locaddr)
-
-
-def start():
-    sock.sendto('command'.encode(encoding="utf-8"), tello_address)
-    time.sleep(5)
-'''
+possible_addr = []
 
 
-# IP and port of Tello
-tello1_address = ('192.168.10.1', 8889)
+def scan_Ip(ip):
+    addr = net + str(ip)
+    comm = ping_com + addr
+    response = os.popen(comm)
+    data = response.readlines()
+    for line in data:
+        if 'TTL' in line:
+            print(addr, "--> Ping Ok")
+            possible_addr.append(addr)
+            break
+            
 
-# IP and port of local computer
-local1_address = ('', 9010)
+net = netifaces.gateways()['default'][2][0]
+print('You IP :',net)
+net_split = net.split('.')
+a = '.'
+net = net_split[0] + a + net_split[1] + a + net_split[2] + a
+start_point = 1
+end_point = 255
+##start_point = int(input("Enter the Starting Number: "))
+##end_point = int(input("Enter the Last Number: "))
 
-# Create a UDP connection that we'll send the command to
-sock1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+oc = platform.system()
+if (oc == "Windows"):
+    ping_com = "ping -n 1 "
+else:
+    ping_com = "ping -c 1 "
 
-# Bind to the local address and port
-sock1.bind(local1_address)
+t1 = datetime.now()
+print("Scanning in Progress:")
+for ip in range(start_point, end_point):
+    if ip == int(net_split[3]):
+       continue
+    potoc = threading.Thread(target=scan_Ip, args=[ip])
+    potoc.start()
+potoc.join()
+t2 = datetime.now()
+total = t2 - t1
 
-# Send the message to Tello and allow for a delay in seconds
-def send(message, delay):
-  # Try to send the message otherwise print the exception
-  try:
-    sock1.sendto(message.encode(), tello1_address)
-    print("Sending message: " + message)
-  except Exception as e:
-    print("Error sending: " + str(e))
-
-  # Delay for a user-defined period of time
-  time.sleep(delay)
-
-# Receive the message from Tello
-def receive():
-  # Continuously loop and listen for incoming messages
-  while True:
-    # Try to receive the message otherwise print the exception
+print("Scanning completed")
+detect_Tello_Arduino = {}
+for ip in possible_addr:
+    url = 'http://' + ip + '/'
+    print(url)
     try:
-      response1, ip_address = sock1.recvfrom(128)
-      print("Received message: from Tello EDU #1: " + response1.decode(encoding='utf-8'))
-    except Exception as e:
-      # If there's an error close the socket and break out of the loop
-      sock1.close()
-      print("Error receiving: " + str(e))
-      break
+        r = requests.get(url)
+        a = r.text.split('<h2>')[1].split('</h2>')[0]
+        print(a)
+        detect_Tello_Arduino[a] = ip
+    except:
+        print('No')
+        pass
 
-# Create and start a listening thread that runs in the background
-# This utilizes our receive functions and will continuously monitor for incoming messages
-receiveThread = threading.Thread(target=receive)
-receiveThread.daemon = True
-receiveThread.start()
+print(detect_Tello_Arduino)
 
-send("command", 3)
-send("takeoff", 3)
-send("land", 5)
+from wifiArduino import *
+from time import sleep
 
-sock1.close()
-'''
-# Each leg of the box will be 100 cm. Tello uses cm units by default.
-box_leg_distance = 100
-
-# Yaw 90 degrees
-yaw_angle = 90
-
-# Yaw clockwise (right)
-yaw_direction = "cw"
-
-# Put Tello into command mode
-send("command", 3)
-
-# Send the takeoff command
-send("takeoff", 8)
-
-# Loop and create each leg of the box
-for i in range(4):
-  # Fly forward
-  send("forward " + str(box_leg_distance), 4)
-  # Yaw right
-  send("cw " + str(yaw_angle), 3)
-
-# Land
-send("land", 5)
-
-# Print message
-print("Mission completed successfully!")
-
-# Close the socket
-sock1.close()
-sock2.close()
-'''
+led_on(detect_Tello_Arduino['Tello1'])
+sleep(1)
+led_off(detect_Tello_Arduino['Tello1'])
+sleep(1)
+led_on(detect_Tello_Arduino['Tello1'])
